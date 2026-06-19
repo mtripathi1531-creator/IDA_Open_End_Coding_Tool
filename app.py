@@ -295,9 +295,11 @@ def handle_openai_errors(func):
     return None
 
 
-with st.sidebar:
-    st.header("Settings")
-    api_key = st.text_input("OpenAI API Key", type="password", help="Your key is not stored.")
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except Exception:
+    st.error("OpenAI API Key not configured in Streamlit Secrets.")
+    st.stop()
 
 uploaded_file = st.file_uploader("Upload Excel file (.xlsx)", type=["xlsx"])
 
