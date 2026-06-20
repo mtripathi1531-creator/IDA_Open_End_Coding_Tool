@@ -291,6 +291,99 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Modern full-width SaaS shell. The original component rules above are retained
+# for compatibility; these scoped overrides define the current visual system.
+st.markdown(
+    """
+    <style>
+        :root { --ida-primary:#6D28D9; --ida-secondary:#8B5CF6; --ida-bg:#F8FAFC; --ida-text:#0F172A; }
+        #MainMenu, footer, header, [data-testid="stHeader"], [data-testid="stToolbar"],
+        [data-testid="stDecoration"], [data-testid="stStatusWidget"], .stDeployButton,
+        [data-testid="stSidebar"], .viewerBadge_container__1QSob, .viewerBadge_link__1S137,
+        .viewerBadge_container__r5tak, .viewerBadge_link__qRIco { display:none !important; }
+        iframe { border:none !important; }
+        html, body, [class*="css"] { font-family:'Inter',sans-serif; color:var(--ida-text); }
+        .stApp { background:var(--ida-bg); }
+        .block-container { max-width:1400px !important; padding:5.75rem 2rem 2rem !important; }
+        .ida-hero, .ida-features, .ida-security, .ida-upload-card { display:none !important; }
+        .ida-nav { position:fixed; z-index:999; top:0; left:0; right:0; height:68px; display:flex;
+            align-items:center; justify-content:space-between; padding:0 max(2rem,calc((100vw - 1400px)/2));
+            background:rgba(255,255,255,.96); border-bottom:1px solid #E2E8F0; backdrop-filter:blur(12px); }
+        .ida-brand { display:flex; align-items:center; gap:12px; }
+        .ida-logo { width:38px; height:38px; display:grid; place-items:center; border-radius:11px;
+            color:white; font-weight:800; background:linear-gradient(135deg,var(--ida-primary),var(--ida-secondary)); }
+        .ida-brand-copy strong { display:block; font-size:.95rem; } .ida-brand-copy span { color:#64748B; font-size:.75rem; }
+        .ida-sales-link { color:white !important; background:var(--ida-primary); padding:.68rem 1rem;
+            border-radius:9px; text-decoration:none; font-size:.84rem; font-weight:700; }
+        .ida-kicker { color:var(--ida-primary); font-weight:800; font-size:.76rem; letter-spacing:.1em; text-transform:uppercase; }
+        .ida-landing-copy { padding:1.25rem 2rem 0 0; }
+        .ida-landing-copy h1 { max-width:760px; margin:.65rem 0 .55rem; font-size:clamp(2.35rem,4vw,4.25rem);
+            line-height:1.03; letter-spacing:-.055em; color:var(--ida-text); }
+        .ida-landing-copy h2 { margin:0 0 1rem; color:var(--ida-primary) !important; font-size:1.25rem; }
+        .ida-lead { max-width:720px; color:#475569; font-size:1.07rem; line-height:1.7; }
+        .ida-feature-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:1.6rem 0; }
+        .ida-mini-card { min-height:86px; padding:1rem; background:white; border:1px solid #E2E8F0; border-radius:13px;
+            box-shadow:0 8px 25px rgba(15,23,42,.04); font-size:.84rem; font-weight:700; }
+        .ida-mini-card span { display:block; margin-bottom:.45rem; color:var(--ida-primary); font-size:1.15rem; }
+        .ida-security-new { padding:1.1rem 1.25rem; border:1px solid #DDD6FE; border-radius:14px; background:#F5F3FF; }
+        .ida-security-new strong { display:block; margin-bottom:.7rem; }
+        .ida-security-list { display:flex; flex-wrap:wrap; gap:.5rem 1.2rem; color:#5B21B6; font-size:.8rem; }
+        .ida-steps { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:.85rem; }
+        .ida-step { padding:.85rem .6rem; border-top:2px solid #C4B5FD; color:#475569; font-size:.76rem; font-weight:700; }
+        .ida-step b { color:var(--ida-primary); margin-right:.3rem; }
+        .ida-demo-card, .ida-panel, .ida-summary { background:white; border:1px solid #E2E8F0; border-radius:18px;
+            box-shadow:0 16px 45px rgba(15,23,42,.07); }
+        .ida-demo-card { padding:1.5rem 1.5rem .4rem; }
+        .ida-demo-card .free { color:var(--ida-primary); font-size:.72rem; font-weight:800; letter-spacing:.12em; }
+        .ida-demo-card h2 { margin:.3rem 0 .8rem; font-size:1.55rem; }
+        .ida-checks { display:grid; gap:.4rem; margin-bottom:1rem; color:#334155; font-size:.86rem; }
+        .ida-checks span::first-letter { color:var(--ida-primary); }
+        .ida-limit { margin:.3rem 0 1.4rem; padding:1rem; border-radius:12px; background:#F8FAFC; color:#64748B; font-size:.8rem; line-height:1.55; }
+        .ida-limit strong { display:block; color:#334155; font-size:.68rem; letter-spacing:.1em; margin-bottom:.35rem; }
+        .ida-contact { display:block; text-align:center; margin-top:.75rem; padding:.72rem; border-radius:9px;
+            background:#0F172A; color:white !important; text-decoration:none; font-weight:700; }
+        [data-testid="stFileUploader"] { padding:.4rem 0 1rem !important; border:0 !important; box-shadow:none !important; background:white !important; }
+        [data-testid="stFileUploader"] > div { min-height:180px; display:flex; align-items:center; justify-content:center;
+            border:2px dashed var(--ida-primary) !important; border-radius:16px !important; background:#FAF7FF !important; }
+        [data-testid="stFileUploader"] button { color:white !important; background:var(--ida-primary) !important;
+            border:0 !important; border-radius:9px !important; font-weight:700 !important; }
+        [data-testid="stFileUploader"] button { font-size:0 !important; }
+        [data-testid="stFileUploader"] button::after { content:"Choose Excel File"; font-size:.82rem; }
+        [data-testid="stFileUploader"] small { color:#64748B !important; }
+        [data-testid="stHorizontalBlock"]:has(.ida-demo-card) > [data-testid="stColumn"]:last-child,
+        [data-testid="stHorizontalBlock"]:has(.ida-summary) > [data-testid="stColumn"]:last-child {
+            position:sticky; top:88px; align-self:flex-start;
+        }
+        .ida-workspace-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+        .ida-workspace-head h1 { margin:0; font-size:1.7rem; letter-spacing:-.03em; }
+        .ida-workspace-head p { margin:.25rem 0 0; color:#64748B; }
+        .ida-panel { padding:1.35rem; margin-bottom:1rem; box-shadow:0 5px 20px rgba(15,23,42,.04); }
+        .ida-panel-title { margin:0 0 .25rem; font-size:1.05rem; font-weight:800; }
+        .ida-panel-sub { margin:0 0 1rem; color:#64748B; font-size:.83rem; }
+        .ida-summary { position:sticky; top:88px; padding:1.25rem; }
+        .ida-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:.9rem 0; }
+        .ida-stat { padding:.8rem; border-radius:11px; background:#F8FAFC; }
+        .ida-stat b { display:block; font-size:1.25rem; } .ida-stat span { color:#64748B; font-size:.72rem; }
+        .ida-status { display:inline-flex; padding:.35rem .6rem; border-radius:999px; background:#ECFDF5; color:#047857;
+            font-size:.72rem; font-weight:800; }
+        .ida-footer-new { display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-top:2.5rem;
+            padding:1.5rem 0 .5rem; border-top:1px solid #E2E8F0; color:#64748B; font-size:.78rem; }
+        .ida-footer-new a { color:#475569; text-decoration:none; margin-left:1rem; }
+        .stButton>button, .stDownloadButton>button { border-radius:9px !important; font-weight:700 !important; }
+        .stButton>button[kind="primary"], .stDownloadButton>button[kind="primary"] { background:var(--ida-primary) !important; }
+        @media(max-width:900px) { .block-container{padding:5.25rem 1rem 1.5rem !important}.ida-landing-copy{padding-right:0}
+            .ida-feature-grid{grid-template-columns:repeat(2,1fr)}.ida-steps{grid-template-columns:1fr}.ida-summary{position:static}.ida-nav{padding:0 1rem}
+            [data-testid="stHorizontalBlock"]:has(.ida-demo-card) > [data-testid="stColumn"]:last-child,
+            [data-testid="stHorizontalBlock"]:has(.ida-summary) > [data-testid="stColumn"]:last-child {position:static;} }
+    </style>
+    <div class="ida-nav">
+      <div class="ida-brand"><div class="ida-logo">IDA</div><div class="ida-brand-copy"><strong>Inside Data Analytics</strong><span>AI Open End Coding Tool</span></div></div>
+      <a class="ida-sales-link" href="mailto:sales@insidedataanalytics.com">Contact Sales</a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.markdown(
     """
     <div class="ida-hero">
@@ -345,6 +438,7 @@ st.markdown(
 )
 
 MODEL = "gpt-4o-mini"
+MAX_DEMO_RESPONSES = 100
 CODING_BATCH_SIZE = 15
 MAX_RESPONSE_CHARS = 500
 MAX_RESPONSES_FOR_CODEFRAME = 200
@@ -733,6 +827,206 @@ def handle_openai_errors(func):
     except Exception as exc:
         st.error(f"An unexpected error occurred: {exc}")
     return None
+
+
+def render_footer():
+    st.markdown(
+        """
+        <div class="ida-footer-new">
+          <span>© Inside Data Analytics</span>
+          <span><a href="https://www.insidedataanalytics.com/privacy-policy" target="_blank">Privacy Policy</a>
+          <a href="mailto:sales@insidedataanalytics.com">sales@insidedataanalytics.com</a>
+          <a href="https://www.insidedataanalytics.com" target="_blank">www.insidedataanalytics.com</a></span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_landing():
+    left, right = st.columns([65, 35], gap="large")
+    with left:
+        st.markdown(
+            """
+            <div class="ida-landing-copy">
+              <div class="ida-kicker">AI coding, built for research</div>
+              <h1>AI-Powered Open End Coding Platform</h1>
+              <h2>Built for Market Research Teams</h2>
+              <p class="ida-lead">Generate codeframes, assign respondent-level codes, and export client-ready deliverables in minutes instead of hours.</p>
+              <div class="ida-feature-grid">
+                <div class="ida-mini-card"><span>✦</span>Automatic Codeframe Generation</div>
+                <div class="ida-mini-card"><span>⌘</span>Multi-Code Assignment</div>
+                <div class="ida-mini-card"><span>▥</span>Frequency Tables</div>
+                <div class="ida-mini-card"><span>↓</span>Excel Export</div>
+                <div class="ida-mini-card"><span>◎</span>Respondent-Level Coding</div>
+              </div>
+              <div class="ida-security-new"><strong>Enterprise Security</strong>
+                <div class="ida-security-list"><span>✓ HTTPS encrypted</span><span>✓ GDPR friendly</span><span>✓ No training on client data</span><span>✓ Temporary file processing</span><span>✓ Private OpenAI API</span></div>
+              </div>
+              <div class="ida-kicker" style="margin-top:1.5rem">How it works</div>
+              <div class="ida-steps"><div class="ida-step"><b>1</b> Upload File</div><div class="ida-step"><b>2</b> Generate Codeframe</div><div class="ida-step"><b>3</b> Review &amp; Edit</div><div class="ida-step"><b>4</b> Apply Coding</div><div class="ida-step"><b>5</b> Download Deliverable</div></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with right:
+        st.markdown(
+            """<div class="ida-demo-card"><div class="free">FREE DEMO</div><h2>Up to 100 Responses</h2>
+            <div class="ida-checks"><span>✔ Up to 100 responses</span><span>✔ Multiple OE variables</span><span>✔ AI coding</span><span>✔ Frequency tables</span><span>✔ Excel export</span></div>""",
+            unsafe_allow_html=True,
+        )
+        st.file_uploader(
+            "Drag & drop your Excel file here",
+            type=["xlsx"],
+            key="demo_upload",
+            help="Maximum 100 responses. .xlsx only.",
+        )
+        st.markdown(
+            """<div class="ida-limit"><strong>DEMO LIMITATION</strong>This demo version supports up to 100 responses.<br><br>For larger studies contact:<br><b>sales@insidedataanalytics.com</b><a class="ida-contact" href="mailto:sales@insidedataanalytics.com">Contact Sales</a></div></div>""",
+            unsafe_allow_html=True,
+        )
+
+
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except Exception:
+    st.error("OpenAI API Key not configured in Streamlit Secrets.")
+    st.stop()
+
+uploaded_file = st.session_state.get("demo_upload")
+if uploaded_file is None:
+    render_landing()
+    render_footer()
+    st.stop()
+
+file_id = f"{uploaded_file.name}_{uploaded_file.size}"
+if st.session_state.get("file_id") != file_id:
+    st.session_state["file_id"] = file_id
+    for key in ("coding_results", "id_columns", "oe_columns"):
+        st.session_state.pop(key, None)
+
+try:
+    original_df = pd.read_excel(uploaded_file, engine="openpyxl")
+except Exception as exc:
+    st.error(f"Could not read the Excel file: {exc}")
+    st.stop()
+
+if len(original_df) > MAX_DEMO_RESPONSES:
+    st.warning(
+        "This demo version supports up to 100 responses. "
+        "Contact sales@insidedataanalytics.com for larger studies."
+    )
+    st.stop()
+
+all_columns = original_df.columns.tolist()
+if not all_columns:
+    st.error("The uploaded file contains no columns.")
+    st.stop()
+
+coding_results = st.session_state.setdefault("coding_results", {})
+selected_oe = [c for c in st.session_state.get("oe_columns", []) if c in all_columns]
+coded_oe_columns = [c for c in selected_oe if c in coding_results and "coded_codes" in coding_results[c]]
+
+st.markdown(
+    f"""<div class="ida-workspace-head"><div><div class="ida-kicker">Project workspace</div><h1>{uploaded_file.name}</h1><p>Configure, code, review, and export your open-end study.</p></div></div>""",
+    unsafe_allow_html=True,
+)
+
+if coded_oe_columns:
+    top_codeframe = build_codeframe_export(coding_results, coded_oe_columns)
+    top_coded_data = build_coded_data_df(original_df, st.session_state.get("id_columns", []), coded_oe_columns, coding_results)
+    top_workbook = build_mr_workbook(original_df, top_codeframe, top_coded_data)
+    st.download_button(
+        "Download Coding_Deliverable.xlsx",
+        top_workbook,
+        "Coding_Deliverable.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        type="primary",
+    )
+
+work_left, work_right = st.columns([72, 28], gap="large")
+with work_left:
+    st.markdown('<div class="ida-panel"><p class="ida-panel-title">Uploaded Data</p><p class="ida-panel-sub">Preview the source workbook before configuring your project.</p>', unsafe_allow_html=True)
+    st.dataframe(original_df, use_container_width=True, height=260)
+    st.markdown('</div><div class="ida-panel"><p class="ida-panel-title">Column Selection</p><p class="ida-panel-sub">Choose respondent identifiers and one or more open-end variables.</p>', unsafe_allow_html=True)
+
+    default_oe = [c for c in st.session_state.get("oe_columns", []) if c in all_columns]
+    oe_columns = st.multiselect("Open-end question columns", all_columns, default=default_oe, help="Select every open-end variable that should be coded.")
+    st.session_state["oe_columns"] = oe_columns
+    id_options = [c for c in all_columns if c not in oe_columns]
+    default_ids = [c for c in st.session_state.get("id_columns", suggest_id_columns(all_columns, oe_columns)) if c in id_options]
+    id_columns = st.multiselect("Respondent identifier columns", id_options, default=default_ids, help="Included in the CodedData sheet.")
+    st.session_state["id_columns"] = id_columns
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if not oe_columns:
+        st.info("Select at least one open-end question column to begin coding.")
+    else:
+        st.markdown('<div class="ida-panel"><p class="ida-panel-title">Question Setup & Codeframe Editor</p><p class="ida-panel-sub">Generate, review, and apply a codeframe for each selected variable.</p>', unsafe_allow_html=True)
+        question_tabs = st.tabs(oe_columns)
+        for tab_idx, (oe_col, tab) in enumerate(zip(oe_columns, question_tabs)):
+            with tab:
+                q_idx = tab_idx + 1
+                existing = coding_results.get(oe_col, {})
+                question_key = f"question_{oe_col}"
+                question_text = st.text_area("Question text", value=existing.get("question_text", st.session_state.get(question_key, "")), placeholder=f"Enter the survey question for {oe_col}.", height=100, key=f"question_text_{oe_col}")
+                st.session_state[question_key] = question_text
+                num_codes = st.number_input("Number of thematic codes required", min_value=2, max_value=50, value=int(existing.get("num_codes", 8)), step=1, key=f"num_codes_{oe_col}")
+                responses = original_df[oe_col].fillna("").astype(str).tolist()
+
+                if st.button("Generate Draft Codeframe", type="primary", key=f"gen_codeframe_{oe_col}"):
+                    if not api_key or not api_key.strip():
+                        st.error("Please configure your OpenAI API key.")
+                    elif not question_text.strip():
+                        st.error("Please enter the survey question text.")
+                    elif not responses or all(not r.strip() for r in responses):
+                        st.warning(f"No responses found in column '{oe_col}'.")
+                    else:
+                        with st.spinner(f"Generating draft codeframe for {oe_col}..."):
+                            def run_codeframe():
+                                return generate_draft_codeframe(get_client(api_key.strip()), question_text.strip(), responses, int(num_codes))
+                            codeframe_df = handle_openai_errors(run_codeframe)
+                        if codeframe_df is not None:
+                            coding_results[oe_col] = {"question_text": question_text.strip(), "num_codes": int(num_codes), "codeframe_df": codeframe_df}
+                            st.session_state["coding_results"] = coding_results
+                            st.success(f"Draft codeframe for {oe_col} created with {len(codeframe_df)} codes.")
+
+                if oe_col in coding_results and "codeframe_df" in coding_results[oe_col]:
+                    st.caption("Review and edit the draft codeframe before applying it to responses.")
+                    edited_codeframe = st.data_editor(coding_results[oe_col]["codeframe_df"], num_rows="dynamic", use_container_width=True, column_config={"Code": st.column_config.NumberColumn("Code", required=True, format="%d"), "Label": st.column_config.TextColumn("Label", required=True), "Description": st.column_config.TextColumn("Description", help="Coding definition used by the AI coder (not exported).")}, key=f"codeframe_editor_{oe_col}")
+                    if st.button("Apply Codeframe", key=f"apply_codeframe_{oe_col}"):
+                        cleaned_codeframe = ensure_standard_codes(edited_codeframe)
+                        if not api_key or not api_key.strip():
+                            st.error("Please configure your OpenAI API key.")
+                        elif cleaned_codeframe.empty:
+                            st.error("The codeframe must contain at least one code.")
+                        else:
+                            with st.spinner(f"Coding responses in {oe_col}..."):
+                                def run_coding():
+                                    coded_codes = apply_codeframe(get_client(api_key.strip()), question_text.strip(), cleaned_codeframe, responses)
+                                    return coded_codes, build_frequency_table(coded_codes, cleaned_codeframe), cleaned_codeframe
+                                result = handle_openai_errors(run_coding)
+                            if result is not None:
+                                coded_codes, frequency_df, cleaned_codeframe = result
+                                coding_results[oe_col] = {"question_text": question_text.strip(), "num_codes": int(num_codes), "codeframe_df": cleaned_codeframe, "coded_codes": coded_codes, "frequency_df": frequency_df}
+                                st.session_state["coding_results"] = coding_results
+                                st.success(f"Coded {len(coded_codes)} response(s) for {oe_col}.")
+
+                    if "coded_codes" in coding_results.get(oe_col, {}):
+                        st.markdown(f"**SPSS-style variables for Q{q_idx}**")
+                        preview_data = build_coded_data_df(original_df, id_columns, [oe_col], {oe_col: coding_results[oe_col]})
+                        st.dataframe(preview_data, use_container_width=True)
+                        st.markdown("**Frequency Table**")
+                        st.dataframe(coding_results[oe_col]["frequency_df"], use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+with work_right:
+    st.markdown(f"""<div class="ida-summary"><div class="ida-kicker">Project summary</div><h3 style="margin:.4rem 0">{uploaded_file.name}</h3><span class="ida-status">Ready</span><div class="ida-stat-grid"><div class="ida-stat"><b>{len(original_df)}</b><span>Rows</span></div><div class="ida-stat"><b>{len(all_columns)}</b><span>Columns</span></div><div class="ida-stat"><b>{len(st.session_state.get('oe_columns', []))}</b><span>Selected variables</span></div><div class="ida-stat"><b>{len(coded_oe_columns)}</b><span>Coded variables</span></div></div><p style="font-size:.76rem;color:#64748B;margin-bottom:.4rem">Replace source file</p>""", unsafe_allow_html=True)
+    st.file_uploader("Upload another .xlsx file", type=["xlsx"], key="demo_upload", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+render_footer()
+st.stop()
 
 
 try:
