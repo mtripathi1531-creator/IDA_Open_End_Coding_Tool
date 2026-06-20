@@ -6,9 +6,343 @@ import pandas as pd
 import streamlit as st
 from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
 
-st.set_page_config(page_title="IDA Open End Coding Tool", layout="wide")
-st.title("IDA Open End Coding Tool")
-st.caption("Professional market research open-end coding")
+st.set_page_config(
+    page_title="IDA Open End Coding Tool",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+# ── Custom SaaS styling ──────────────────────────────────────────────────────
+
+st.markdown(
+    """
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Hide Streamlit chrome */
+        #MainMenu { visibility: hidden; }
+        footer { visibility: hidden; }
+        header { visibility: hidden; }
+        [data-testid="stHeader"] { display: none; }
+        [data-testid="stToolbar"] { display: none; }
+        [data-testid="stDecoration"] { display: none; }
+        [data-testid="stStatusWidget"] { display: none; }
+        .stDeployButton { display: none; }
+        [data-testid="stSidebar"] { display: none; }
+        .viewerBadge_container__r5tak { display: none; }
+        .viewerBadge_link__qRIco { display: none; }
+
+        /* Global typography & layout */
+        html, body, [class*="css"] {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .stApp {
+            background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 40%, #FFFFFF 100%);
+        }
+        .block-container {
+            padding-top: 1.5rem !important;
+            padding-bottom: 2rem !important;
+            max-width: 1100px;
+        }
+
+        /* Hero */
+        .ida-hero {
+            text-align: center;
+            padding: 3rem 1.5rem 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .ida-badge {
+            display: inline-block;
+            background: #EEF2FF;
+            color: #4338CA;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            margin-bottom: 1.25rem;
+        }
+        .ida-hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #0F172A;
+            line-height: 1.2;
+            margin: 0 0 0.75rem 0;
+            letter-spacing: -0.025em;
+        }
+        .ida-hero .subtitle {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #6366F1;
+            margin: 0 0 1rem 0;
+        }
+        .ida-hero .description {
+            font-size: 1.05rem;
+            color: #64748B;
+            max-width: 620px;
+            margin: 0 auto;
+            line-height: 1.65;
+        }
+
+        /* Feature grid */
+        .ida-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin: 0 0 2rem 0;
+            padding: 0 0.25rem;
+        }
+        .ida-feature {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 1.25rem 1rem;
+            text-align: center;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .ida-feature:hover {
+            border-color: #C7D2FE;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08);
+        }
+        .ida-feature .icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.6rem;
+            line-height: 1;
+        }
+        .ida-feature .label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #334155;
+            line-height: 1.4;
+        }
+
+        /* Security box */
+        .ida-security {
+            background: #F0FDF4;
+            border: 1px solid #BBF7D0;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .ida-security .title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #166534;
+            margin: 0 0 0.75rem 0;
+        }
+        .ida-security ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 0.4rem 1.5rem;
+        }
+        .ida-security li {
+            font-size: 0.875rem;
+            color: #15803D;
+            line-height: 1.5;
+        }
+
+        /* Upload card */
+        .ida-upload-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-bottom: none;
+            border-radius: 16px 16px 0 0;
+            padding: 2rem 2rem 1.25rem;
+            margin-bottom: 0;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+        .ida-upload-card h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0F172A;
+            margin: 0 0 0.5rem 0;
+        }
+        .ida-upload-card p {
+            font-size: 0.925rem;
+            color: #64748B;
+            margin: 0 0 0.25rem 0;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        .ida-footer {
+            text-align: center;
+            padding: 2.5rem 1rem 1rem;
+            margin-top: 3rem;
+            border-top: 1px solid #E2E8F0;
+        }
+        .ida-footer p {
+            font-size: 0.8125rem;
+            color: #94A3B8;
+            margin: 0;
+        }
+        .ida-footer a {
+            color: #6366F1;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .ida-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Workflow sections (post-upload) */
+        .ida-workflow {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 16px;
+            padding: 1.75rem 2rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+        .ida-section-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #94A3B8;
+            margin: 0 0 0.25rem 0;
+        }
+
+        /* Streamlit component polish */
+        [data-testid="stFileUploader"] {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-top: 1px dashed #CBD5E1;
+            border-radius: 0 0 16px 16px;
+            padding: 1.5rem 2rem 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 24px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        [data-testid="stFileUploader"]:hover {
+            border-color: #C7D2FE;
+            background: #FAFBFF;
+        }
+        [data-testid="stFileUploader"] > div {
+            background: #F8FAFC;
+            border: 2px dashed #CBD5E1;
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        [data-testid="stFileUploader"]:hover > div {
+            border-color: #818CF8;
+            background: #EEF2FF;
+        }
+        [data-testid="stFileUploader"] section {
+            padding: 0.5rem;
+        }
+        [data-testid="stFileUploader"] small {
+            color: #64748B !important;
+        }
+        .stButton > button[kind="primary"] {
+            background: #4F46E5 !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            padding: 0.5rem 1.25rem !important;
+            transition: background 0.2s ease !important;
+        }
+        .stButton > button[kind="primary"]:hover {
+            background: #4338CA !important;
+        }
+        .stButton > button[kind="secondary"] {
+            border-radius: 8px !important;
+            font-weight: 500 !important;
+        }
+        [data-testid="stTabs"] button {
+            font-weight: 500 !important;
+            font-size: 0.875rem !important;
+        }
+        [data-testid="stTabs"] button[aria-selected="true"] {
+            color: #4F46E5 !important;
+        }
+        h2, h3 {
+            color: #0F172A !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.01em !important;
+        }
+        .stCaption, [data-testid="stCaptionContainer"] {
+            color: #64748B !important;
+        }
+        [data-testid="stDataFrame"], .stDataFrame {
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        div[data-testid="stExpander"] {
+            border: 1px solid #E2E8F0 !important;
+            border-radius: 10px !important;
+        }
+        .stTextArea textarea, .stNumberInput input, .stMultiSelect div {
+            border-radius: 8px !important;
+        }
+        div[data-baseweb="select"] > div {
+            border-radius: 8px !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="ida-hero">
+        <div class="ida-badge">IDA Open End Coding Tool</div>
+        <h1>AI-Powered Open End Coding Platform</h1>
+        <p class="subtitle">Built for Market Research Teams</p>
+        <p class="description">
+            Generate codeframes, assign respondent-level codes, and export client-ready
+            deliverables in minutes instead of hours.
+        </p>
+    </div>
+
+    <div class="ida-features">
+        <div class="ida-feature">
+            <div class="icon">⚡</div>
+            <div class="label">Automatic Codeframe Generation</div>
+        </div>
+        <div class="ida-feature">
+            <div class="icon">🏷</div>
+            <div class="label">Multi-Code Assignment</div>
+        </div>
+        <div class="ida-feature">
+            <div class="icon">📊</div>
+            <div class="label">Frequency Tables</div>
+        </div>
+        <div class="ida-feature">
+            <div class="icon">📥</div>
+            <div class="label">Excel Export</div>
+        </div>
+        <div class="ida-feature">
+            <div class="icon">🔍</div>
+            <div class="label">Respondent-Level Coding</div>
+        </div>
+    </div>
+
+    <div class="ida-security">
+        <p class="title">🔒 Secure Processing</p>
+        <ul>
+            <li>✓ Files processed over encrypted HTTPS</li>
+            <li>✓ No client data used to train AI models</li>
+            <li>✓ Temporary file processing</li>
+            <li>✓ Private OpenAI API infrastructure</li>
+        </ul>
+    </div>
+
+    <div class="ida-upload-card">
+        <h2>Upload Survey Responses</h2>
+        <p>Upload an Excel workbook containing open-ended survey responses.</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 MODEL = "gpt-4o-mini"
 CODING_BATCH_SIZE = 15
@@ -410,6 +744,8 @@ except Exception:
 uploaded_file = st.file_uploader("Upload Excel file (.xlsx)", type=["xlsx"])
 
 if uploaded_file is not None:
+    st.markdown('<div class="ida-workflow">', unsafe_allow_html=True)
+
     file_id = f"{uploaded_file.name}_{uploaded_file.size}"
     if st.session_state.get("file_id") != file_id:
         st.session_state["file_id"] = file_id
@@ -634,3 +970,17 @@ if uploaded_file is not None:
                 st.dataframe(codeframe_export, use_container_width=True)
                 st.markdown("**CodedData** — identifiers plus SPSS-style coded variables")
                 st.dataframe(coded_data_export.head(5), use_container_width=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown(
+    """
+    <div class="ida-footer">
+        <p>Powered by Inside Data Analytics &nbsp;·&nbsp;
+        <a href="https://www.insidedataanalytics.com" target="_blank" rel="noopener noreferrer">
+            www.insidedataanalytics.com
+        </a></p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
