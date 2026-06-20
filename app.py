@@ -331,20 +331,14 @@ st.markdown(
         <ul>
             <li>✓ Files processed over encrypted HTTPS</li>
             <li>✓ No client data used to train AI models</li>
-            <li>✓ Uploaded files automatically removed after processing</li>
-           <li>✓ GDPR-friendly workflow</li>
+            <li>✓ Temporary file processing</li>
+            <li>✓ Private OpenAI API infrastructure</li>
         </ul>
     </div>
 
     <div class="ida-upload-card">
         <h2>Upload Survey Responses</h2>
         <p>Upload an Excel workbook containing open-ended survey responses.</p>
-        <ul style="margin-top:10px;">
-            <li>✓ Up to {MAX_DEMO_RESPONSES} responses</li>
-            <li>✓ Automatic codeframe generation</li>
-            <li>✓ Frequency tables</li>
-            <li>✓ Excel export</li>
-        </ul>
     </div>
     """,
     unsafe_allow_html=True,
@@ -353,8 +347,7 @@ st.markdown(
 MODEL = "gpt-4o-mini"
 CODING_BATCH_SIZE = 15
 MAX_RESPONSE_CHARS = 500
-MAX_RESPONSES_FOR_CODEFRAME = 100
-MAX_DEMO_RESPONSES = 100
+MAX_RESPONSES_FOR_CODEFRAME = 200
 CODE_OTHER = 96
 CODE_UNCODED = 99
 STANDARD_CODES = {CODE_OTHER: "Other", CODE_UNCODED: "Uncoded"}
@@ -750,11 +743,6 @@ except Exception:
 
 uploaded_file = st.file_uploader("Upload Excel file (.xlsx)", type=["xlsx"])
 
-st.info(
-    "🚀 Demo Version: Supports up to 100 responses. "
-    "Need unlimited coding? Contact sales@insidedataanalytics.com"
-)
-
 if uploaded_file is not None:
     st.markdown('<div class="ida-workflow">', unsafe_allow_html=True)
 
@@ -764,18 +752,11 @@ if uploaded_file is not None:
         for key in ("coding_results", "id_columns", "oe_columns"):
             st.session_state.pop(key, None)
 
-try:
-    original_df = pd.read_excel(uploaded_file, engine="openpyxl")
-
-    if len(original_df) > MAX_DEMO_RESPONSES:
-        st.error(
-            f"Demo version supports a maximum of {MAX_DEMO_RESPONSES} responses."
-        )
+    try:
+        original_df = pd.read_excel(uploaded_file, engine="openpyxl")
+    except Exception as exc:
+        st.error(f"Could not read the Excel file: {exc}")
         st.stop()
-
-except Exception as exc:
-    st.error(f"Could not read the Excel file: {exc}")
-    st.stop()
 
     all_columns = original_df.columns.tolist()
     if not all_columns:
