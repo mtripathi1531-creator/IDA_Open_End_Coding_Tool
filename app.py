@@ -300,7 +300,9 @@ st.markdown(
         #MainMenu, footer, header, [data-testid="stHeader"], [data-testid="stToolbar"],
         [data-testid="stDecoration"], [data-testid="stStatusWidget"], .stDeployButton,
         [data-testid="stSidebar"], .viewerBadge_container__1QSob, .viewerBadge_link__1S137,
-        .viewerBadge_container__r5tak, .viewerBadge_link__qRIco { display:none !important; }
+        .viewerBadge_text__1JaDK, .viewerBadge_container__r5tak, .viewerBadge_link__qRIco,
+        div[data-testid="stBottom"], iframe[title="streamlit badge"], button[kind="header"],
+        button[data-testid*="profile"] { display:none !important; }
         iframe { border:none !important; }
         html, body, [class*="css"] { font-family:'Inter',sans-serif; color:var(--ida-text); }
         .stApp { background:var(--ida-bg); }
@@ -932,18 +934,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-if coded_oe_columns:
-    top_codeframe = build_codeframe_export(coding_results, coded_oe_columns)
-    top_coded_data = build_coded_data_df(original_df, st.session_state.get("id_columns", []), coded_oe_columns, coding_results)
-    top_workbook = build_mr_workbook(original_df, top_codeframe, top_coded_data)
-    st.download_button(
-        "Download Coding_Deliverable.xlsx",
-        top_workbook,
-        "Coding_Deliverable.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        type="primary",
-    )
-
 work_left, work_right = st.columns([72, 28], gap="large")
 with work_left:
     st.markdown('<div class="ida-panel"><p class="ida-panel-title">Uploaded Data</p><p class="ida-panel-sub">Preview the source workbook before configuring your project.</p>', unsafe_allow_html=True)
@@ -1019,6 +1009,44 @@ with work_left:
                         st.markdown("**Frequency Table**")
                         st.dataframe(coding_results[oe_col]["frequency_df"], use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
+        completed_oe_columns = [
+            col
+            for col in oe_columns
+            if col in coding_results and "coded_codes" in coding_results[col]
+        ]
+        if completed_oe_columns:
+            codeframe_export = build_codeframe_export(coding_results, completed_oe_columns)
+            coded_data_export = build_coded_data_df(
+                original_df,
+                id_columns,
+                completed_oe_columns,
+                coding_results,
+            )
+            workbook_bytes = build_mr_workbook(
+                original_df,
+                codeframe_export,
+                coded_data_export,
+            )
+
+            with st.expander("Deliverable Preview"):
+                st.markdown("**OriginalData** — all uploaded variables unchanged")
+                st.dataframe(original_df.head(5), use_container_width=True)
+                st.markdown("**CodeFrame** — numeric codes and labels")
+                st.dataframe(codeframe_export, use_container_width=True)
+                st.markdown("**CodedData** — identifiers plus SPSS-style coded variables")
+                st.dataframe(coded_data_export.head(5), use_container_width=True)
+
+            st.markdown("---")
+            st.subheader("Export Deliverable")
+            st.download_button(
+                label="📥 Download Coding_Deliverable.xlsx",
+                data=workbook_bytes,
+                file_name="Coding_Deliverable.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                type="primary",
+                use_container_width=True,
+            )
 
 with work_right:
     st.markdown(f"""<div class="ida-summary"><div class="ida-kicker">Project summary</div><h3 style="margin:.4rem 0">{uploaded_file.name}</h3><span class="ida-status">Ready</span><div class="ida-stat-grid"><div class="ida-stat"><b>{len(original_df)}</b><span>Rows</span></div><div class="ida-stat"><b>{len(all_columns)}</b><span>Columns</span></div><div class="ida-stat"><b>{len(st.session_state.get('oe_columns', []))}</b><span>Selected variables</span></div><div class="ida-stat"><b>{len(coded_oe_columns)}</b><span>Coded variables</span></div></div><p style="font-size:.76rem;color:#64748B;margin-bottom:.4rem">Replace source file</p>""", unsafe_allow_html=True)
