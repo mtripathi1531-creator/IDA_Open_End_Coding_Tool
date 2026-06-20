@@ -34,7 +34,7 @@ st.markdown(
         [data-testid="stSidebar"] { display: none; }
         .viewerBadge_container__r5tak { display: none; }
         .viewerBadge_link__qRIco { display: none; }
-        ._link_gzau3_10, ._profilePreview_gzau3_63{ display: none !Important;}
+        ._container_gzau3_1, ._profileContainer_gzau3_53{ display: none !Important;}
         /* Global typography & layout */
         html, body, [class*="css"] {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
