@@ -1,6 +1,7 @@
 import io
 import json
 import re
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
@@ -441,12 +442,91 @@ st.markdown(
 
 MODEL = "gpt-4o-mini"
 MAX_DEMO_RESPONSES = 100
+LEADS_FILE = "leads.xlsx"
+LEAD_COLUMNS = [
+    "Name",
+    "Email",
+    "Company",
+    "First_Visit",
+    "Last_Visit",
+    "Upload_Count",
+    "Total_Responses",
+]
 CODING_BATCH_SIZE = 15
 MAX_RESPONSE_CHARS = 500
 MAX_RESPONSES_FOR_CODEFRAME = 200
 CODE_OTHER = 96
 CODE_UNCODED = 99
 STANDARD_CODES = {CODE_OTHER: "Other", CODE_UNCODED: "Uncoded"}
+
+
+def _now_string() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _load_leads() -> pd.DataFrame:
+    try:
+        leads_df = pd.read_excel(LEADS_FILE, engine="openpyxl")
+    except FileNotFoundError:
+        leads_df = pd.DataFrame(columns=LEAD_COLUMNS)
+
+    for column in LEAD_COLUMNS:
+        if column not in leads_df.columns:
+            leads_df[column] = 0 if column in ("Upload_Count", "Total_Responses") else ""
+
+    leads_df = leads_df[LEAD_COLUMNS].copy()
+    leads_df["Email"] = leads_df["Email"].fillna("").astype(str).str.strip().str.lower()
+    leads_df["Upload_Count"] = pd.to_numeric(leads_df["Upload_Count"], errors="coerce").fillna(0).astype(int)
+    leads_df["Total_Responses"] = pd.to_numeric(leads_df["Total_Responses"], errors="coerce").fillna(0).astype(int)
+    return leads_df
+
+
+def _write_leads(leads_df: pd.DataFrame) -> None:
+    leads_df.to_excel(LEADS_FILE, index=False, engine="openpyxl")
+
+
+def save_user(name, email, company):
+    # Future Google Sheets Integration: replace this function with save_to_google_sheets().
+    name = str(name).strip()
+    email = str(email).strip().lower()
+    company = str(company).strip()
+    now = _now_string()
+
+    leads_df = _load_leads()
+    existing = leads_df["Email"] == email
+
+    if existing.any():
+        leads_df.loc[existing, "Last_Visit"] = now
+    else:
+        new_row = {
+            "Name": name,
+            "Email": email,
+            "Company": company,
+            "First_Visit": now,
+            "Last_Visit": now,
+            "Upload_Count": 0,
+            "Total_Responses": 0,
+        }
+        leads_df = pd.concat([leads_df, pd.DataFrame([new_row])], ignore_index=True)
+
+    _write_leads(leads_df)
+
+
+def update_usage(email, responses_uploaded):
+    # Future Google Sheets Integration: keep callers stable when storage changes.
+    email = str(email).strip().lower()
+    responses_uploaded = int(responses_uploaded)
+    now = _now_string()
+
+    leads_df = _load_leads()
+    existing = leads_df["Email"] == email
+    if not existing.any():
+        return
+
+    leads_df.loc[existing, "Upload_Count"] = leads_df.loc[existing, "Upload_Count"].astype(int) + 1
+    leads_df.loc[existing, "Total_Responses"] = leads_df.loc[existing, "Total_Responses"].astype(int) + responses_uploaded
+    leads_df.loc[existing, "Last_Visit"] = now
+    _write_leads(leads_df)
 
 
 def get_client(api_key: str) -> OpenAI:
@@ -846,6 +926,7 @@ def render_footer():
 
 
 def render_landing():
+    st.session_state.setdefault("demo_access", False)
     left, right = st.columns([65, 35], gap="large")
     with left:
         st.markdown(
@@ -855,6 +936,7 @@ def render_landing():
               <h1>AI-Powered Open End Coding Platform</h1>
               <h2>Built for Market Research Teams</h2>
               <p class="ida-lead">Generate codeframes, assign respondent-level codes, and export client-ready deliverables in minutes instead of hours.</p>
+              <p class="ida-lead"><strong>Welcome to the AI Open-End Coding Demo</strong><br>Please provide your professional details to access the platform.</p>
               <div class="ida-feature-grid">
                 <div class="ida-mini-card"><span>✦</span>Automatic Codeframe Generation</div>
                 <div class="ida-mini-card"><span>⌘</span>Multi-Code Assignment</div>
@@ -874,7 +956,7 @@ def render_landing():
     with right:
         st.markdown(
             """<div class="ida-demo-card"><div class="free">FREE DEMO</div><h2>Up to 100 Responses</h2>
-            <div class="ida-checks"><span>✔ Up to 100 responses</span><span>✔ Multiple OE variables</span><span>✔ AI coding</span><span>✔ Frequency tables</span><span>✔ Excel export</span></div>""",
+            <div class="ida-checks"><span>✔ Up to 100 responses</span><span>✔ AI Codeframe Generation</span><span>✔ Multi-Code Assignment</span><span>✔ Frequency Tables</span><span>✔ Excel Export Deliverables</span></div>""",
             unsafe_allow_html=True,
         )
         st.file_uploader(
@@ -889,16 +971,84 @@ def render_landing():
         )
 
 
-try:
-    api_key = st.secrets["OPENAI_API_KEY"]
-except Exception:
-    st.error("OpenAI API Key not configured in Streamlit Secrets.")
+def render_lead_capture():
+    st.markdown(
+        """
+        <div class="ida-demo-card">
+          <div class="free">FREE DEMO</div>
+          <h2>Welcome to the AI Open-End Coding Demo</h2>
+          <p>Please provide your professional details to access the platform.</p>
+          <div class="ida-checks">
+            <span>✓ Up to 100 responses</span>
+            <span>✓ AI Codeframe Generation</span>
+            <span>✓ Multi-Code Assignment</span>
+            <span>✓ Frequency Tables</span>
+            <span>✓ Excel Export Deliverables</span>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.form("lead_capture_form"):
+        full_name = st.text_input("Full Name *")
+        work_email = st.text_input("Work Email *")
+        company_name = st.text_input("Company Name *")
+        submitted = st.form_submit_button("Continue to Demo", type="primary")
+
+    if not submitted:
+        return
+
+    full_name = full_name.strip()
+    work_email = work_email.strip().lower()
+    company_name = company_name.strip()
+
+    if not full_name or not work_email or not company_name:
+        st.error("Please complete all required fields.")
+        return
+    if "@" not in work_email:
+        st.error("Please enter a valid work email address.")
+        return
+
+    try:
+        save_user(full_name, work_email, company_name)
+    except PermissionError:
+        st.error("Could not save your details because leads.xlsx is currently open. Please close it and try again.")
+        return
+    except Exception as exc:
+        st.error(f"Could not save your details: {exc}")
+        return
+
+    st.session_state["demo_access"] = True
+    st.session_state["lead_name"] = full_name
+    st.session_state["lead_email"] = work_email
+    st.session_state["lead_company"] = company_name
+    st.success("Welcome! You now have access to the demo version.")
+    st.rerun()
+
+
+st.session_state.setdefault("demo_access", False)
+
+if not st.session_state["demo_access"]:
+    render_lead_capture()
+    render_footer()
     st.stop()
 
 uploaded_file = st.session_state.get("demo_upload")
 if uploaded_file is None:
+    st.success("Welcome! You now have access to the demo version.")
+    st.markdown(
+        f"""<div class="ida-limit"><strong>USER</strong>{st.session_state.get("lead_company", "")}<br>{st.session_state.get("lead_email", "")}</div>""",
+        unsafe_allow_html=True,
+    )
     render_landing()
     render_footer()
+    st.stop()
+
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except Exception:
+    st.error("OpenAI API Key not configured in Streamlit Secrets.")
     st.stop()
 
 file_id = f"{uploaded_file.name}_{uploaded_file.size}"
@@ -915,10 +1065,21 @@ except Exception as exc:
 
 if len(original_df) > MAX_DEMO_RESPONSES:
     st.warning(
-        "This demo version supports up to 100 responses. "
-        "Contact sales@insidedataanalytics.com for larger studies."
+        "This demo version supports up to 100 responses.\n\n"
+        "Contact [sales@insidedataanalytics.com](mailto:sales@insidedataanalytics.com) for larger studies."
     )
     st.stop()
+
+usage_key = f"{st.session_state.get('lead_email', '')}:{file_id}"
+if st.session_state.get("usage_tracked_file") != usage_key:
+    try:
+        update_usage(st.session_state.get("lead_email", ""), len(original_df))
+    except PermissionError:
+        st.warning("Usage could not be saved because leads.xlsx is currently open.")
+    except Exception as exc:
+        st.warning(f"Usage could not be saved: {exc}")
+    else:
+        st.session_state["usage_tracked_file"] = usage_key
 
 all_columns = original_df.columns.tolist()
 if not all_columns:
@@ -1040,7 +1201,7 @@ with work_left:
             st.markdown("---")
             st.subheader("Export Deliverable")
             st.download_button(
-                label="📥 Download Coding_Deliverable.xlsx",
+                label="Download Coding_Deliverable.xlsx",
                 data=workbook_bytes,
                 file_name="Coding_Deliverable.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1049,260 +1210,10 @@ with work_left:
             )
 
 with work_right:
-    st.markdown(f"""<div class="ida-summary"><div class="ida-kicker">Project summary</div><h3 style="margin:.4rem 0">{uploaded_file.name}</h3><span class="ida-status">Ready</span><div class="ida-stat-grid"><div class="ida-stat"><b>{len(original_df)}</b><span>Rows</span></div><div class="ida-stat"><b>{len(all_columns)}</b><span>Columns</span></div><div class="ida-stat"><b>{len(st.session_state.get('oe_columns', []))}</b><span>Selected variables</span></div><div class="ida-stat"><b>{len(coded_oe_columns)}</b><span>Coded variables</span></div></div><p style="font-size:.76rem;color:#64748B;margin-bottom:.4rem">Replace source file</p>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="ida-summary"><div class="ida-kicker">Project summary</div><h3 style="margin:.4rem 0">{uploaded_file.name}</h3><span class="ida-status">Ready</span><div class="ida-stat-grid"><div class="ida-stat"><b>{len(original_df)}</b><span>Rows</span></div><div class="ida-stat"><b>{len(all_columns)}</b><span>Columns</span></div><div class="ida-stat"><b>{len(st.session_state.get('oe_columns', []))}</b><span>Selected variables</span></div><div class="ida-stat"><b>{len(coded_oe_columns)}</b><span>Coded variables</span></div></div><div class="ida-limit"><strong>USER</strong>{st.session_state.get("lead_company", "")}<br>{st.session_state.get("lead_email", "")}</div><p style="font-size:.76rem;color:#64748B;margin-bottom:.4rem">Replace source file</p>""", unsafe_allow_html=True)
     st.file_uploader("Upload another .xlsx file", type=["xlsx"], key="demo_upload", label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
 render_footer()
 st.stop()
 
-
-try:
-    api_key = st.secrets["OPENAI_API_KEY"]
-except Exception:
-    st.error("OpenAI API Key not configured in Streamlit Secrets.")
-    st.stop()
-
-uploaded_file = st.file_uploader("Upload Excel file (.xlsx)", type=["xlsx"])
-
-if uploaded_file is not None:
-    st.markdown('<div class="ida-workflow">', unsafe_allow_html=True)
-
-    file_id = f"{uploaded_file.name}_{uploaded_file.size}"
-    if st.session_state.get("file_id") != file_id:
-        st.session_state["file_id"] = file_id
-        for key in ("coding_results", "id_columns", "oe_columns"):
-            st.session_state.pop(key, None)
-
-    try:
-        original_df = pd.read_excel(uploaded_file, engine="openpyxl")
-    except Exception as exc:
-        st.error(f"Could not read the Excel file: {exc}")
-        st.stop()
-
-    all_columns = original_df.columns.tolist()
-    if not all_columns:
-        st.error("The uploaded file contains no columns.")
-        st.stop()
-
-    st.subheader("Uploaded Data")
-    st.dataframe(original_df, use_container_width=True)
-
-    st.subheader("Column Selection")
-    st.caption(
-        "Select respondent identifier columns and one or more open-end question columns to code."
-    )
-
-    default_oe = st.session_state.get("oe_columns", [])
-    default_oe = [c for c in default_oe if c in all_columns]
-
-    oe_columns = st.multiselect(
-        "Open-end question columns",
-        options=all_columns,
-        default=default_oe,
-        help="Select every open-end variable that should be coded.",
-    )
-    st.session_state["oe_columns"] = oe_columns
-
-    id_options = [c for c in all_columns if c not in oe_columns]
-    default_ids = st.session_state.get("id_columns", suggest_id_columns(all_columns, oe_columns))
-    default_ids = [c for c in default_ids if c in id_options]
-
-    id_columns = st.multiselect(
-        "Respondent identifier columns",
-        options=id_options,
-        default=default_ids,
-        help="These columns are included in the CodedData sheet (e.g. RespondentID, CaseID).",
-    )
-    st.session_state["id_columns"] = id_columns
-
-    if not oe_columns:
-        st.info("Select at least one open-end question column to begin coding.")
-    else:
-        if "coding_results" not in st.session_state:
-            st.session_state["coding_results"] = {}
-
-        coding_results = st.session_state["coding_results"]
-
-        st.subheader("Coding Setup")
-        question_tabs = st.tabs([f"{col}" for col in oe_columns])
-
-        for tab_idx, (oe_col, tab) in enumerate(zip(oe_columns, question_tabs)):
-            with tab:
-                q_idx = tab_idx + 1
-                existing = coding_results.get(oe_col, {})
-                question_key = f"question_{oe_col}"
-                question_default = existing.get("question_text", st.session_state.get(question_key, ""))
-
-                question_text = st.text_area(
-                    "Question text",
-                    value=question_default,
-                    placeholder=f"Enter the survey question for {oe_col}.",
-                    height=100,
-                    key=f"question_text_{oe_col}",
-                )
-                st.session_state[question_key] = question_text
-
-                num_codes = st.number_input(
-                    "Number of thematic codes required",
-                    min_value=2,
-                    max_value=50,
-                    value=int(existing.get("num_codes", 8)),
-                    step=1,
-                    key=f"num_codes_{oe_col}",
-                )
-
-                responses = original_df[oe_col].fillna("").astype(str).tolist()
-
-                if st.button("Generate Draft Codeframe", type="primary", key=f"gen_codeframe_{oe_col}"):
-                    if not api_key or not api_key.strip():
-                        st.error("Please enter your OpenAI API key in the sidebar.")
-                    elif not question_text.strip():
-                        st.error("Please enter the survey question text.")
-                    elif not responses or all(not r.strip() for r in responses):
-                        st.warning(f"No responses found in column '{oe_col}'.")
-                    else:
-                        with st.spinner(f"Generating draft codeframe for {oe_col}..."):
-
-                            def run_codeframe():
-                                client = get_client(api_key.strip())
-                                return generate_draft_codeframe(
-                                    client,
-                                    question_text.strip(),
-                                    responses,
-                                    int(num_codes),
-                                )
-
-                            codeframe_df = handle_openai_errors(run_codeframe)
-                            if codeframe_df is not None:
-                                coding_results[oe_col] = {
-                                    "question_text": question_text.strip(),
-                                    "num_codes": int(num_codes),
-                                    "codeframe_df": codeframe_df,
-                                }
-                                st.session_state["coding_results"] = coding_results
-                                st.success(
-                                    f"Draft codeframe for {oe_col} created with {len(codeframe_df)} codes."
-                                )
-
-                if oe_col in coding_results and "codeframe_df" in coding_results[oe_col]:
-                    st.caption("Review and edit the draft codeframe before applying it to responses.")
-                    edited_codeframe = st.data_editor(
-                        coding_results[oe_col]["codeframe_df"],
-                        num_rows="dynamic",
-                        use_container_width=True,
-                        column_config={
-                            "Code": st.column_config.NumberColumn("Code", required=True, format="%d"),
-                            "Label": st.column_config.TextColumn("Label", required=True),
-                            "Description": st.column_config.TextColumn(
-                                "Description",
-                                help="Coding definition used by the AI coder (not exported).",
-                            ),
-                        },
-                        key=f"codeframe_editor_{oe_col}",
-                    )
-
-                    if st.button("Apply Codeframe", key=f"apply_codeframe_{oe_col}"):
-                        cleaned_codeframe = ensure_standard_codes(edited_codeframe)
-                        if not api_key or not api_key.strip():
-                            st.error("Please enter your OpenAI API key in the sidebar.")
-                        elif cleaned_codeframe.empty:
-                            st.error("The codeframe must contain at least one code.")
-                        else:
-                            with st.spinner(f"Coding responses in {oe_col}..."):
-
-                                def run_coding():
-                                    client = get_client(api_key.strip())
-                                    coded_codes = apply_codeframe(
-                                        client,
-                                        question_text.strip(),
-                                        cleaned_codeframe,
-                                        responses,
-                                    )
-                                    frequency_df = build_frequency_table(coded_codes, cleaned_codeframe)
-                                    return coded_codes, frequency_df, cleaned_codeframe
-
-                                result = handle_openai_errors(run_coding)
-                                if result is not None:
-                                    coded_codes, frequency_df, cleaned_codeframe = result
-                                    coding_results[oe_col] = {
-                                        "question_text": question_text.strip(),
-                                        "num_codes": int(num_codes),
-                                        "codeframe_df": cleaned_codeframe,
-                                        "coded_codes": coded_codes,
-                                        "frequency_df": frequency_df,
-                                    }
-                                    st.session_state["coding_results"] = coding_results
-                                    st.success(f"Coded {len(coded_codes)} response(s) for {oe_col}.")
-
-                    if oe_col in coding_results and "coded_codes" in coding_results[oe_col]:
-                        st.markdown(f"**SPSS-style variables for Q{q_idx}**")
-                        preview_slots = max(
-                            len(c) for c in coding_results[oe_col]["coded_codes"]
-                        )
-                        preview_cols = [f"Q{q_idx}_{slot}" for slot in range(1, preview_slots + 1)]
-                        preview_data = build_coded_data_df(
-                            original_df,
-                            id_columns,
-                            [oe_col],
-                            {oe_col: coding_results[oe_col]},
-                        )
-                        st.dataframe(
-                            preview_data[id_columns + preview_cols] if id_columns else preview_data,
-                            use_container_width=True,
-                        )
-
-                        st.markdown("**Frequency Table**")
-                        st.dataframe(
-                            coding_results[oe_col]["frequency_df"],
-                            use_container_width=True,
-                        )
-
-        coded_oe_columns = [
-            col for col in oe_columns if col in coding_results and "coded_codes" in coding_results[col]
-        ]
-        if coded_oe_columns:
-            st.subheader("Download Deliverable")
-            st.caption(
-                "Single Excel workbook with OriginalData, CodeFrame, and CodedData sheets "
-                "(standard market research coding deliverable)."
-            )
-
-            codeframe_export = build_codeframe_export(coding_results, coded_oe_columns)
-            coded_data_export = build_coded_data_df(
-                original_df,
-                id_columns,
-                coded_oe_columns,
-                coding_results,
-            )
-            workbook_bytes = build_mr_workbook(original_df, codeframe_export, coded_data_export)
-
-            st.download_button(
-                label="Download Coding_Deliverable.xlsx",
-                data=workbook_bytes,
-                file_name="Coding_Deliverable.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="primary",
-            )
-
-            with st.expander("Deliverable preview"):
-                st.markdown("**OriginalData** — all uploaded variables unchanged")
-                st.dataframe(original_df.head(5), use_container_width=True)
-                st.markdown("**CodeFrame** — numeric codes and labels")
-                st.dataframe(codeframe_export, use_container_width=True)
-                st.markdown("**CodedData** — identifiers plus SPSS-style coded variables")
-                st.dataframe(coded_data_export.head(5), use_container_width=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-st.markdown(
-    """
-    <div class="ida-footer">
-        <p>Powered by Inside Data Analytics &nbsp;·&nbsp;
-        <a href="https://www.insidedataanalytics.com" target="_blank" rel="noopener noreferrer">
-            www.insidedataanalytics.com
-        </a></p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
