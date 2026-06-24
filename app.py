@@ -6,6 +6,9 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
+import gspread
+from google.oauth2.service_account import Credentials
+st.write("TEST BUTTON LOADED")
 if st.button("FULL TEST"):
 
     try:
@@ -42,7 +45,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
-
+st.button("FULL TEST")
 # ── Custom SaaS styling ──────────────────────────────────────────────────────
 
 st.markdown(
