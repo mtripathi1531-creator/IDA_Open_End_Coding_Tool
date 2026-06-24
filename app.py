@@ -2,6 +2,7 @@ import io
 import json
 import re
 from datetime import datetime
+from html import escape
 
 import pandas as pd
 import streamlit as st
@@ -9,34 +10,6 @@ from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, Ra
 import gspread
 from google.oauth2.service_account import Credentials
 
-st.write("TEST BUTTON LOADED")
-if st.button("FULL TEST GOOGLE SHEET", key="sheet_test"):
-    try:
-        scope = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-
-        creds = Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"],
-            scopes=scope
-        )
-
-        client = gspread.authorize(creds)
-
-        sheet = client.open("IDA Demo Leads").sheet1
-
-        sheet.append_row([
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Raj",
-            "raj@test.com",
-            "IDA"
-        ])
-
-        st.success("SUCCESS - ROW ADDED")
-
-    except Exception as e:
-        st.error(f"ERROR: {e}")
 st.set_page_config(
     page_title="IDA Open End Coding Tool",
     page_icon="📊",
@@ -364,7 +337,7 @@ st.markdown(
         .ida-steps { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:.85rem; }
         .ida-step { padding:.85rem .6rem; border-top:2px solid #C4B5FD; color:#475569; font-size:.76rem; font-weight:700; }
         .ida-step b { color:var(--ida-primary); margin-right:.3rem; }
-        .ida-demo-card, .ida-panel, .ida-summary { background:white; border:1px solid #E2E8F0; border-radius:18px;
+        .ida-demo-card, .ida-panel, .ida-summary, .ida-user-card { background:white; border:1px solid #E2E8F0; border-radius:18px;
             box-shadow:0 16px 45px rgba(15,23,42,.07); }
         .ida-demo-card { padding:1.5rem 1.5rem .4rem; }
         .ida-demo-card .free { color:var(--ida-primary); font-size:.72rem; font-weight:800; letter-spacing:.12em; }
@@ -375,6 +348,17 @@ st.markdown(
         .ida-limit strong { display:block; color:#334155; font-size:.68rem; letter-spacing:.1em; margin-bottom:.35rem; }
         .ida-contact { display:block; text-align:center; margin-top:.75rem; padding:.72rem; border-radius:9px;
             background:#0F172A; color:white !important; text-decoration:none; font-weight:700; }
+        .ida-user-card { margin:0 0 1rem; padding:1rem 1.05rem; background:linear-gradient(180deg,#FFFFFF 0%,#FAF7FF 100%);
+            border-color:#DDD6FE; box-shadow:0 14px 35px rgba(109,40,217,.10); overflow:hidden; }
+        .ida-user-card::before { content:""; display:block; width:44px; height:3px; border-radius:999px;
+            background:linear-gradient(90deg,var(--ida-primary),var(--ida-secondary)); margin-bottom:.85rem; }
+        .ida-user-card .welcome { margin:0 0 .65rem; color:#0F172A; font-size:1rem; font-weight:800; line-height:1.3; }
+        .ida-user-card .company { display:flex; align-items:center; gap:.45rem; margin:0 0 .8rem; color:#475569;
+            font-size:.86rem; font-weight:650; overflow-wrap:anywhere; }
+        .ida-user-card .access { display:inline-flex; align-items:center; gap:.45rem; padding:.38rem .62rem; border-radius:999px;
+            background:#ECFDF5; color:#047857; font-size:.74rem; font-weight:800; }
+        .ida-user-card .status-dot { width:8px; height:8px; border-radius:999px; background:#10B981;
+            box-shadow:0 0 0 4px rgba(16,185,129,.13); }
         [data-testid="stFileUploader"] { padding:.4rem 0 1rem !important; border:0 !important; box-shadow:none !important; background:white !important; }
         [data-testid="stFileUploader"] > div { min-height:180px; display:flex; align-items:center; justify-content:center;
             border:2px dashed var(--ida-primary) !important; border-radius:16px !important; background:#FAF7FF !important; }
@@ -406,6 +390,7 @@ st.markdown(
         .stButton>button[kind="primary"], .stDownloadButton>button[kind="primary"] { background:var(--ida-primary) !important; }
         @media(max-width:900px) { .block-container{padding:5.25rem 1rem 1.5rem !important}.ida-landing-copy{padding-right:0}
             .ida-feature-grid{grid-template-columns:repeat(2,1fr)}.ida-steps{grid-template-columns:1fr}.ida-summary{position:static}.ida-nav{padding:0 1rem}
+            .ida-user-card{margin-top:.5rem}
             [data-testid="stHorizontalBlock"]:has(.ida-demo-card) > [data-testid="stColumn"]:last-child,
             [data-testid="stHorizontalBlock"]:has(.ida-summary) > [data-testid="stColumn"]:last-child {position:static;} }
     </style>
@@ -472,15 +457,14 @@ st.markdown(
 
 MODEL = "gpt-4o-mini"
 MAX_DEMO_RESPONSES = 100
-LEADS_FILE = "leads.xlsx"
 LEAD_COLUMNS = [
+    "Date",
     "Name",
     "Email",
     "Company",
-    "First_Visit",
-    "Last_Visit",
     "Upload_Count",
     "Total_Responses",
+    "Last_Visit",
 ]
 CODING_BATCH_SIZE = 15
 MAX_RESPONSE_CHARS = 500
@@ -494,69 +478,103 @@ def _now_string() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _load_leads() -> pd.DataFrame:
+# Google Sheets Lead Tracking
+def get_sheet():
+    scope = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=scope,
+    )
+    client = gspread.authorize(creds)
+    sheet = client.open("IDA Demo Leads").sheet1
+
+    header = sheet.row_values(1)
+    if header != LEAD_COLUMNS:
+        sheet.update("A1:G1", [LEAD_COLUMNS])
+
+    return sheet
+
+
+def _sheet_rows(sheet):
+    values = sheet.get_all_values()
+    rows = []
+    for idx, values_row in enumerate(values[1:], start=2):
+        row = {
+            column: values_row[col_idx] if col_idx < len(values_row) else ""
+            for col_idx, column in enumerate(LEAD_COLUMNS)
+        }
+        if any(str(value).strip() for value in row.values()):
+            rows.append((idx, row))
+    return rows
+
+
+def _find_user_row(sheet, email):
+    email = str(email).strip().lower()
+    for row_number, row in _sheet_rows(sheet):
+        if str(row.get("Email", "")).strip().lower() == email:
+            return row_number, row
+    return None, None
+
+
+def _to_int(value) -> int:
     try:
-        leads_df = pd.read_excel(LEADS_FILE, engine="openpyxl")
-    except FileNotFoundError:
-        leads_df = pd.DataFrame(columns=LEAD_COLUMNS)
-
-    for column in LEAD_COLUMNS:
-        if column not in leads_df.columns:
-            leads_df[column] = 0 if column in ("Upload_Count", "Total_Responses") else ""
-
-    leads_df = leads_df[LEAD_COLUMNS].copy()
-    leads_df["Email"] = leads_df["Email"].fillna("").astype(str).str.strip().str.lower()
-    leads_df["Upload_Count"] = pd.to_numeric(leads_df["Upload_Count"], errors="coerce").fillna(0).astype(int)
-    leads_df["Total_Responses"] = pd.to_numeric(leads_df["Total_Responses"], errors="coerce").fillna(0).astype(int)
-    return leads_df
+        return int(float(value or 0))
+    except (TypeError, ValueError):
+        return 0
 
 
-def _write_leads(leads_df: pd.DataFrame) -> None:
-    leads_df.to_excel(LEADS_FILE, index=False, engine="openpyxl")
-
-
+# Save User Information
 def save_user(name, email, company):
-    # Future Google Sheets Integration: replace this function with save_to_google_sheets().
     name = str(name).strip()
     email = str(email).strip().lower()
     company = str(company).strip()
     now = _now_string()
 
-    leads_df = _load_leads()
-    existing = leads_df["Email"] == email
-
-    if existing.any():
-        leads_df.loc[existing, "Last_Visit"] = now
-    else:
-        new_row = {
-            "Name": name,
-            "Email": email,
-            "Company": company,
-            "First_Visit": now,
-            "Last_Visit": now,
-            "Upload_Count": 0,
-            "Total_Responses": 0,
-        }
-        leads_df = pd.concat([leads_df, pd.DataFrame([new_row])], ignore_index=True)
-
-    _write_leads(leads_df)
+    try:
+        sheet = get_sheet()
+        row_number, _ = _find_user_row(sheet, email)
+        if row_number:
+            sheet.update_cell(row_number, LEAD_COLUMNS.index("Last_Visit") + 1, now)
+        else:
+            sheet.append_row(
+                [now, name, email, company, 0, 0, now],
+                value_input_option="USER_ENTERED",
+            )
+        return True
+    except Exception:
+        st.warning("Lead tracking temporarily unavailable.")
+        return False
 
 
+# Update User Usage Statistics
 def update_usage(email, responses_uploaded):
-    # Future Google Sheets Integration: keep callers stable when storage changes.
     email = str(email).strip().lower()
     responses_uploaded = int(responses_uploaded)
     now = _now_string()
 
-    leads_df = _load_leads()
-    existing = leads_df["Email"] == email
-    if not existing.any():
-        return
+    if not email:
+        return False
 
-    leads_df.loc[existing, "Upload_Count"] = leads_df.loc[existing, "Upload_Count"].astype(int) + 1
-    leads_df.loc[existing, "Total_Responses"] = leads_df.loc[existing, "Total_Responses"].astype(int) + responses_uploaded
-    leads_df.loc[existing, "Last_Visit"] = now
-    _write_leads(leads_df)
+    try:
+        sheet = get_sheet()
+        row_number, row = _find_user_row(sheet, email)
+        if not row_number:
+            return False
+
+        upload_count = _to_int(row.get("Upload_Count")) + 1
+        total_responses = _to_int(row.get("Total_Responses")) + responses_uploaded
+        sheet.update(
+            f"E{row_number}:G{row_number}",
+            [[upload_count, total_responses, now]],
+            value_input_option="USER_ENTERED",
+        )
+        return True
+    except Exception:
+        st.warning("Lead tracking temporarily unavailable.")
+        return False
 
 
 def get_client(api_key: str) -> OpenAI:
@@ -941,6 +959,22 @@ def handle_openai_errors(func):
     return None
 
 
+# User Access Card
+def render_user_access_card():
+    lead_name = escape(st.session_state.get("lead_name", "Demo User"))
+    lead_company = escape(st.session_state.get("lead_company", "Demo Workspace"))
+    st.markdown(
+        f"""
+        <div class="ida-user-card">
+          <p class="welcome">👋 Welcome, {lead_name}</p>
+          <p class="company">🏢 {lead_company}</p>
+          <span class="access"><span class="status-dot"></span>Demo Access Active</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_footer():
     st.markdown(
         """
@@ -984,6 +1018,8 @@ def render_landing():
             unsafe_allow_html=True,
         )
     with right:
+        if st.session_state.get("demo_access"):
+            render_user_access_card()
         st.markdown(
             """<div class="ida-demo-card"><div class="free">FREE DEMO</div><h2>Up to 100 Responses</h2>
             <div class="ida-checks"><span>✔ Up to 100 responses</span><span>✔ AI Codeframe Generation</span><span>✔ Multi-Code Assignment</span><span>✔ Frequency Tables</span><span>✔ Excel Export Deliverables</span></div>""",
@@ -1040,20 +1076,12 @@ def render_lead_capture():
         st.error("Please enter a valid work email address.")
         return
 
-    try:
-        save_user(full_name, work_email, company_name)
-    except PermissionError:
-        st.error("Could not save your details because leads.xlsx is currently open. Please close it and try again.")
-        return
-    except Exception as exc:
-        st.error(f"Could not save your details: {exc}")
-        return
+    save_user(full_name, work_email, company_name)
 
     st.session_state["demo_access"] = True
     st.session_state["lead_name"] = full_name
     st.session_state["lead_email"] = work_email
     st.session_state["lead_company"] = company_name
-    st.success("Welcome! You now have access to the demo version.")
     st.rerun()
 
 
@@ -1066,11 +1094,6 @@ if not st.session_state["demo_access"]:
 
 uploaded_file = st.session_state.get("demo_upload")
 if uploaded_file is None:
-    st.success("Welcome! You now have access to the demo version.")
-    st.markdown(
-        f"""<div class="ida-limit"><strong>USER</strong>{st.session_state.get("lead_company", "")}<br>{st.session_state.get("lead_email", "")}</div>""",
-        unsafe_allow_html=True,
-    )
     render_landing()
     render_footer()
     st.stop()
@@ -1102,13 +1125,7 @@ if len(original_df) > MAX_DEMO_RESPONSES:
 
 usage_key = f"{st.session_state.get('lead_email', '')}:{file_id}"
 if st.session_state.get("usage_tracked_file") != usage_key:
-    try:
-        update_usage(st.session_state.get("lead_email", ""), len(original_df))
-    except PermissionError:
-        st.warning("Usage could not be saved because leads.xlsx is currently open.")
-    except Exception as exc:
-        st.warning(f"Usage could not be saved: {exc}")
-    else:
+    if update_usage(st.session_state.get("lead_email", ""), len(original_df)):
         st.session_state["usage_tracked_file"] = usage_key
 
 all_columns = original_df.columns.tolist()
@@ -1240,7 +1257,8 @@ with work_left:
             )
 
 with work_right:
-    st.markdown(f"""<div class="ida-summary"><div class="ida-kicker">Project summary</div><h3 style="margin:.4rem 0">{uploaded_file.name}</h3><span class="ida-status">Ready</span><div class="ida-stat-grid"><div class="ida-stat"><b>{len(original_df)}</b><span>Rows</span></div><div class="ida-stat"><b>{len(all_columns)}</b><span>Columns</span></div><div class="ida-stat"><b>{len(st.session_state.get('oe_columns', []))}</b><span>Selected variables</span></div><div class="ida-stat"><b>{len(coded_oe_columns)}</b><span>Coded variables</span></div></div><div class="ida-limit"><strong>USER</strong>{st.session_state.get("lead_company", "")}<br>{st.session_state.get("lead_email", "")}</div><p style="font-size:.76rem;color:#64748B;margin-bottom:.4rem">Replace source file</p>""", unsafe_allow_html=True)
+    render_user_access_card()
+    st.markdown(f"""<div class="ida-summary"><div class="ida-kicker">Project summary</div><h3 style="margin:.4rem 0">{uploaded_file.name}</h3><span class="ida-status">Ready</span><div class="ida-stat-grid"><div class="ida-stat"><b>{len(original_df)}</b><span>Rows</span></div><div class="ida-stat"><b>{len(all_columns)}</b><span>Columns</span></div><div class="ida-stat"><b>{len(st.session_state.get('oe_columns', []))}</b><span>Selected variables</span></div><div class="ida-stat"><b>{len(coded_oe_columns)}</b><span>Coded variables</span></div></div><p style="font-size:.76rem;color:#64748B;margin-bottom:.4rem">Replace source file</p>""", unsafe_allow_html=True)
     st.file_uploader("Upload another .xlsx file", type=["xlsx"], key="demo_upload", label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
