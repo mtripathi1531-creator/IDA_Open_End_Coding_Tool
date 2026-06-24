@@ -8,11 +8,10 @@ import streamlit as st
 from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
 import gspread
 from google.oauth2.service_account import Credentials
+
 st.write("TEST BUTTON LOADED")
-if st.button("FULL TEST"):
-
+if st.button("FULL TEST GOOGLE SHEET", key="sheet_test"):
     try:
-
         scope = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
@@ -37,8 +36,7 @@ if st.button("FULL TEST"):
         st.success("SUCCESS - ROW ADDED")
 
     except Exception as e:
-
-        st.error(f"ERROR: {e}")   
+        st.error(f"ERROR: {e}")
 st.set_page_config(
     page_title="IDA Open End Coding Tool",
     page_icon="📊",
