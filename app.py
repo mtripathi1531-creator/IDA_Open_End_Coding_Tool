@@ -6,7 +6,36 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
+if st.button("FULL TEST"):
 
+    try:
+
+        scope = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=scope
+        )
+
+        client = gspread.authorize(creds)
+
+        sheet = client.open("IDA Demo Leads").sheet1
+
+        sheet.append_row([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Raj",
+            "raj@test.com",
+            "IDA"
+        ])
+
+        st.success("SUCCESS - ROW ADDED")
+
+    except Exception as e:
+
+        st.error(f"ERROR: {e}")   
 st.set_page_config(
     page_title="IDA Open End Coding Tool",
     page_icon="📊",
